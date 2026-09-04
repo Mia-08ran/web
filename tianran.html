@@ -1,0 +1,1176 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TianRan-Li — 创意个人品牌</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@800;900&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400;1,700;1,900&family=Noto+Serif+SC:wght@400;600;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=JetBrains+Mono:wght@400;700&family=Impact&display=swap" rel="stylesheet">
+<!-- 引入 FontAwesome 图标库 -->
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- 引入 Matter.js 物理引擎 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/matter-js/0.19.0/matter.min.js"></script>
+<!-- 引入 Three.js 3D 引擎 -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+
+<style>
+  :root {
+    --bg-primary: #050505;
+    --bg-secondary: #0d0d12;
+    --bg-card: transparent;
+    --bg-card-hover: rgba(239, 76, 172, 0.04);
+    --accent-gold: #c9a84c;
+    --accent-gold-dim: rgba(201, 168, 76, 0.15);
+    --accent-gold-glow: rgba(201, 168, 76, 0.3);
+    --accent-pink: #ef4cac;
+    --accent-pink-dim: rgba(239, 76, 172, 0.15);
+    --accent-pink-glow: rgba(239, 76, 172, 0.4);
+    --accent-teal: #4ecdc4;
+    --text-primary: #e8e6e1;
+    --text-secondary: #9a978f;
+    --text-dim: #5a5850;
+    --border-subtle: rgba(239, 76, 172, 0.1);
+    --border-card: rgba(201, 168, 76, 0.25);
+    --font-heading: 'Inter', 'Franklin Gothic Medium', sans-serif;
+    --font-display: 'Playfair Display', 'Noto Serif SC', serif;
+    --font-serif: 'Noto Serif SC', 'Playfair Display', serif;
+    --font-sans: 'Noto Sans SC', sans-serif;
+    --font-mono: 'JetBrains Mono', monospace;
+    --font-impact: 'Impact', sans-serif;
+  }
+
+  /* 隐藏默认鼠标指针 */
+  * { 
+    margin: 0; 
+    padding: 0; 
+    box-sizing: border-box; 
+    cursor: none !important; 
+  }
+
+  html {
+    scroll-behavior: smooth;
+    scrollbar-width: thin;
+    scrollbar-color: var(--accent-pink-dim) var(--bg-primary);
+  }
+
+  body {
+    background: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: var(--font-sans);
+    font-weight: 400;
+    line-height: 1.7;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    position: relative;
+  }
+
+  /* ===== 底层四周粉色呼吸灯发光 ===== */
+  #ambient-breathe {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 1;
+    background: radial-gradient(circle at center, transparent 50%, rgba(239, 76, 172, 0.12) 115%);
+    box-shadow: inset 0 0 140px 25px rgba(239, 76, 172, 0.12);
+    animation: edgeBreathe 4s ease-in-out infinite alternate;
+  }
+
+  @keyframes edgeBreathe {
+    0% { opacity: 0.35; transform: scale(0.98); }
+    100% { opacity: 0.95; transform: scale(1); }
+  }
+
+  /* 噪点质感 */
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.025'/%3E%3C/svg%3E");
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* 3D 粒子水母画布 */
+  #jellyfish-canvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 3; 
+  }
+
+  /* ===== 自定义磁性鼠标 ===== */
+  .cursor-dot {
+    width: 6px;
+    height: 6px;
+    background-color: #ffffff;
+    border-radius: 50%;
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 100001;
+    transform: translate(-50%, -50%);
+  }
+
+  .cursor-outline {
+    width: 36px;
+    height: 36px;
+    border: 1px solid rgba(255, 255, 255, 0.45);
+    border-radius: 50%;
+    position: fixed;
+    top: 0; left: 0;
+    pointer-events: none;
+    z-index: 100000;
+    transform: translate(-50%, -50%);
+    transition: width 0.2s ease, height 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
+  }
+
+  .cursor-outline.hover {
+    width: 56px;
+    height: 56px;
+    background-color: rgba(239, 76, 172, 0.08);
+    border-color: var(--accent-pink);
+  }
+
+  /* 樱花画布与星空画布 */
+  #sakuraCanvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 9999;
+  }
+
+  #starCanvas {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ===== 顶部导航栏 ===== */
+  .navbar {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    padding: 30px 60px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    z-index: 100;
+    font-family: var(--font-mono);
+  }
+
+  .nav-logo {
+    font-weight: 700;
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.85);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+  }
+
+  .nav-contact-link {
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: 700;
+    color: rgba(255, 255, 255, 0.5);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    transition: color 0.4s ease, text-shadow 0.4s ease, opacity 0.4s ease;
+  }
+
+  .nav-contact-link:hover {
+    color: var(--accent-pink);
+    opacity: 1;
+    text-shadow: 0 0 10px rgba(239, 76, 172, 0.8), 0 0 25px rgba(239, 76, 172, 0.5);
+  }
+
+  /* ===== 开头主视觉 & 底部联系我 字体渐变与投影特效 ===== */
+  .hero-welcome {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+    z-index: 5;
+    text-align: center;
+    padding: 0 1rem;
+  }
+
+  .welcome-title {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.2rem;
+  }
+
+  .welcome-title .line,
+  .contact-title-wrapper h2,
+  .back-to-top {
+    text-transform: uppercase;
+    text-decoration: none;
+    background: linear-gradient(180deg, #ffffff 20%, #7a7a85 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.95));
+    transition: all 0.4s ease;
+  }
+
+  .welcome-title .line:hover,
+  .contact-title-wrapper h2:hover,
+  .back-to-top:hover {
+    background: linear-gradient(180deg, #ffffff 0%, var(--accent-pink) 100%);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    filter: drop-shadow(0 0 20px rgba(239, 76, 172, 0.8)) drop-shadow(0 10px 20px rgba(0,0,0,0.9));
+  }
+
+  .welcome-title .line {
+    font-family: var(--font-heading);
+    font-size: clamp(3.8rem, 8.5vw, 6rem);
+    font-weight: 900;
+    line-height: 1.05;
+    letter-spacing: 3px;
+  }
+
+  .contact-title-wrapper h2 {
+    font-family: var(--font-impact);
+    font-size: clamp(4.5rem, 13vw, 11rem);
+    letter-spacing: 2px;
+    margin: 0;
+    position: relative;
+    z-index: 2;
+  }
+
+  .back-to-top {
+    position: absolute;
+    bottom: 4rem;
+    right: 60px;
+    font-family: var(--font-mono);
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 2px;
+    z-index: 100;
+  }
+
+  .welcome-scroll-hint {
+    position: absolute;
+    bottom: 2.5rem;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.6rem;
+    color: var(--text-dim);
+    font-family: var(--font-mono);
+    font-size: 0.68rem;
+    letter-spacing: 0.2em;
+  }
+
+  .welcome-scroll-line {
+    width: 1px;
+    height: 45px;
+    background: linear-gradient(to bottom, var(--accent-pink), transparent);
+    animation: scrollLine 2s ease-in-out infinite;
+  }
+
+  @keyframes scrollLine {
+    0%, 100% { opacity: 0.3; transform: scaleY(0.6); }
+    50% { opacity: 1; transform: scaleY(1); }
+  }
+
+  /* ===== 个人介绍布局 (包含照片及下方的“李天然”名字) ===== */
+  .new-profile-section {
+    min-height: 80vh;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 4rem;
+    position: relative;
+    z-index: 5;
+  }
+
+  .profile-text-content {
+    flex: 1;
+    max-width: 600px;
+  }
+
+  .profile-small-name {
+    font-family: var(--font-mono);
+    font-size: 0.8rem;
+    letter-spacing: 0.2em;
+    color: var(--text-secondary);
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .profile-main-title {
+    font-family: var(--font-heading);
+    font-size: clamp(2.5rem, 5vw, 4rem);
+    font-weight: 900;
+    color: var(--text-primary);
+    margin-bottom: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .profile-main-title i {
+    color: #ffb7c5; 
+    font-size: 0.8em;
+  }
+
+  .profile-typewriter {
+    font-family: var(--font-mono);
+    font-size: clamp(1.8rem, 3vw, 2.5rem);
+    color: var(--accent-pink); 
+    font-weight: 700;
+    margin-bottom: 2rem;
+    text-shadow: 0 0 15px rgba(239, 76, 172, 0.4);
+  }
+
+  .cursor-blink { animation: blink 1s step-end infinite; }
+  @keyframes blink { 0%, 100% { opacity: 1; } 50% { opacity: 0; } }
+
+  .profile-description {
+    font-family: var(--font-serif);
+    font-size: 1rem;
+    color: var(--text-secondary);
+    line-height: 1.8;
+  }
+
+  .profile-image-container {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    position: relative;
+  }
+
+  .profile-image-wrapper {
+      position: relative;
+      width: 320px;
+      height: 320px;
+  }
+
+  .profile-image-glow {
+      position: absolute;
+      inset: -15px; 
+      background: radial-gradient(circle, var(--accent-pink) 0%, transparent 60%);
+      filter: blur(40px);
+      opacity: 0.5;
+      z-index: 1;
+  }
+
+  .profile-img {
+    position: relative;
+    z-index: 2;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    border-radius: 50%;
+    border: 2px solid rgba(239, 76, 172, 0.5);
+  }
+
+  /* 照片下方的名字：李天然样式 */
+  .profile-name-tag {
+    margin-top: 1.2rem;
+    font-family: var(--font-display);
+    font-size: 1.8rem;
+    font-weight: 700;
+    color: var(--text-primary);
+    letter-spacing: 0.1em;
+    text-shadow: 0 0 10px rgba(239, 76, 172, 0.3);
+    z-index: 2;
+  }
+
+  @media (max-width: 900px) {
+    .new-profile-section { flex-direction: column; text-align: center; padding: 4rem 2rem; gap: 4rem; }
+    .profile-main-title { justify-content: center; }
+    .profile-image-wrapper { width: 260px; height: 260px; }
+  }
+
+  /* ===== 主体板块布局 ===== */
+  .page-wrapper {
+    max-width: 1100px;
+    margin: 0 auto;
+    padding: 0 2rem;
+    position: relative;
+    z-index: 5;
+  }
+
+  .section {
+    padding: 6rem 0;
+    position: relative;
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    gap: 1.5rem;
+    margin-bottom: 4rem;
+  }
+
+  .section-number {
+    font-family: var(--font-mono);
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    color: var(--accent-pink);
+  }
+
+  .section-title {
+    font-family: var(--font-display);
+    font-size: clamp(2.2rem, 5vw, 3.2rem);
+    font-weight: 900;
+    font-style: italic;
+    color: var(--text-primary);
+    text-transform: uppercase;
+  }
+
+  .section-line {
+    flex: 1;
+    height: 1px;
+    background: linear-gradient(90deg, var(--border-card), transparent);
+  }
+
+  /* ===== 卡片极简样式 ===== */
+  .skill-card, .exp-card, .award-item {
+    background: transparent;
+    border: none;
+    border-left: 3px solid var(--border-card);
+    padding: 1.5rem 2rem;
+    margin-bottom: 1.5rem;
+    transition: all 0.5s cubic-bezier(0.19, 1, 0.22, 1);
+    opacity: 0;
+    transform: translateX(-30px);
+  }
+
+  .skill-card.visible, .exp-card.visible, .award-item.visible { opacity: 1; transform: translateX(0); }
+  .skill-card:hover, .exp-card:hover, .award-item:hover {
+    background: linear-gradient(90deg, var(--bg-card-hover), transparent);
+    border-left-color: var(--accent-pink);
+    transform: translateX(15px);
+  }
+
+  /* 教育经历 */
+  .edu-timeline { position: relative; padding-left: 3rem; }
+  .edu-timeline::before {
+    content: ''; position: absolute; left: 0.5rem; top: 0; bottom: 0; width: 1px;
+    background: linear-gradient(to bottom, var(--accent-gold), transparent);
+  }
+  .edu-item {
+    position: relative; margin-bottom: 3.5rem; opacity: 0; transform: translateX(-20px); transition: all 0.6s ease-out;
+  }
+  .edu-item.visible { opacity: 1; transform: translateX(0); }
+  .edu-item::before {
+    content: ''; position: absolute; left: -2.7rem; top: 0.6rem; width: 12px; height: 12px;
+    border-radius: 50%; background: var(--bg-primary); border: 2px solid var(--accent-gold); box-shadow: 0 0 12px var(--accent-gold-glow);
+  }
+  .edu-period { font-family: var(--font-mono); font-size: 0.85rem; letter-spacing: 0.1em; color: var(--accent-gold); margin-bottom: 0.4rem; }
+  .edu-school { font-family: var(--font-display); font-size: 1.8rem; font-weight: 700; color: var(--text-primary); margin-bottom: 0.3rem; }
+  .edu-degree { font-size: 1rem; color: var(--text-secondary); margin-bottom: 1rem; }
+  .edu-details { display: flex; flex-wrap: wrap; gap: 0.6rem; }
+  .edu-tag {
+    display: inline-block; padding: 0.3rem 0.8rem; font-size: 0.8rem; font-family: var(--font-mono);
+    color: var(--text-primary); border: 1px solid var(--border-card); transition: all 0.3s ease;
+  }
+  .edu-tag:hover { border-color: var(--accent-pink); color: var(--accent-pink); }
+
+  /* 技能板块 */
+  .skills-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 2rem 3rem; }
+  .skill-title { font-family: var(--font-display); font-size: 1.6rem; font-weight: 700; font-style: italic; color: var(--text-primary); margin-bottom: 1.2rem; line-height: 1.3; }
+  .skill-list { list-style: none; }
+  .skill-list li { position: relative; padding-left: 1.5rem; margin-bottom: 0.6rem; font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; }
+  .skill-list li::before { content: '—'; position: absolute; left: 0; color: var(--accent-pink); font-weight: 700; }
+
+  /* 奖项与证书 */
+  .awards-list { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 1.5rem; }
+  .award-item { display: flex; align-items: flex-start; gap: 1.2rem; }
+  .award-icon { font-size: 2rem; flex-shrink: 0; filter: grayscale(100%) opacity(0.7); transition: all 0.4s ease; }
+  .award-item:hover .award-icon { filter: grayscale(0%) opacity(1); transform: scale(1.1); }
+  .award-text { font-size: 0.95rem; color: var(--text-secondary); line-height: 1.6; }
+  .award-text strong { display: block; font-family: var(--font-serif); font-size: 1.1rem; color: var(--text-primary); margin-bottom: 0.3rem; transition: color 0.3s; }
+  .award-item:hover .award-text strong { color: var(--accent-pink); }
+
+  /* 证书弹窗预览 */
+  .cert-popup { position: fixed; z-index: 10000; pointer-events: none; animation: certPopIn 0.5s cubic-bezier(0.19, 1, 0.22, 1) forwards; }
+  .cert-popup img { width: 380px; max-width: 90vw; border-radius: 4px; box-shadow: 0 20px 50px rgba(0,0,0,0.85), 0 0 30px rgba(239, 76, 172, 0.3); }
+  .cert-popup.fade-out { animation: certPopOut 0.3s ease-in forwards; }
+  @keyframes certPopIn { 0% { opacity: 0; transform: translate(-50%, -40%) scale(0.9); } 100% { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
+  @keyframes certPopOut { 0% { opacity: 1; transform: translate(-50%, -50%) scale(1); } 100% { opacity: 0; transform: translate(-50%, -60%) scale(0.9); } }
+
+  /* 兴趣生活 */
+  .exp-role { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--text-primary); }
+  .exp-company { font-family: var(--font-mono); font-size: 0.9rem; color: var(--accent-gold); margin-top: 0.2rem; margin-bottom: 1rem; }
+  .hobby-images { display: flex; gap: 1rem; margin-top: 1.5rem; flex-wrap: wrap; }
+  .hobby-images img { width: 140px; height: 140px; object-fit: cover; filter: grayscale(60%); transition: all 0.4s ease; }
+  .hobby-images img:hover { filter: grayscale(0%); transform: scale(1.05); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+
+  /* 自我评价 */
+  .self-eval { padding: 2rem 0; }
+  .self-eval p { font-family: var(--font-serif); font-size: 1.3rem; color: var(--text-primary); line-height: 2; text-align: justify; }
+  .self-eval p strong { color: var(--accent-gold); font-family: var(--font-display); font-weight: 900; font-style: italic; }
+
+  /* ===== CONTACT ME 底部区域 ===== */
+  .contact-section {
+    padding: 8rem 0 10rem;
+    background: transparent; 
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    z-index: 5;
+  }
+
+  .contact-title-wrapper { position: relative; display: inline-block; }
+
+  .floating-icon { position: absolute; font-size: clamp(1.6rem, 4.5vw, 2.8rem); z-index: 3; filter: drop-shadow(0 4px 10px rgba(0,0,0,0.5)); }
+  .icon-wechat { color: #1AAD19; bottom: -10%; left: -5%; transform: rotate(-15deg); }
+  .icon-envelope { color: #ffffff; top: -15%; left: 20%; transform: rotate(-10deg); }
+  .icon-qq { color: #12B7F5; top: -5%; right: 25%; transform: rotate(10deg); }
+  .icon-location { color: #FF0000; bottom: -5%; right: 5%; transform: rotate(5deg); }
+
+  /* 物理弹簧螺旋电话容器 */
+  #physics-container {
+    position: absolute;
+    top: 130px; 
+    left: 50%;
+    transform: translateX(-50%);
+    width: 600px; 
+    height: 500px;
+    z-index: 10;
+    pointer-events: none; 
+  }
+
+  #spring-svg { position: absolute; top: 0; left: 0; width: 100%; height: 100%; overflow: visible; pointer-events: none; }
+  #spring-coil-path {
+    fill: none; stroke: rgba(255, 255, 255, 0.85); stroke-width: 3.5px; stroke-linecap: round; stroke-linejoin: round; filter: drop-shadow(0 0 3px rgba(255, 255, 255, 0.4));
+  }
+  
+  .physics-phone {
+    position: absolute; font-size: 3.5rem; color: #00FF00; pointer-events: auto; text-shadow: 0 0 15px rgba(0, 255, 0, 0.6); user-select: none; transform-origin: center; cursor: grab;
+  }
+  .physics-phone:active { cursor: grabbing; }
+
+  /* 联系方式信息卡片 */
+  .contact-info-grid { display: flex; flex-wrap: wrap; justify-content: center; gap: 4rem; margin-top: 16rem; z-index: 2; }
+  .contact-item { text-align: center; }
+  .contact-item .label { font-family: var(--font-mono); font-size: 0.85rem; color: var(--text-secondary); letter-spacing: 0.2em; margin-bottom: 0.5rem; }
+  .contact-item a { font-family: var(--font-display); font-size: 1.4rem; font-weight: 700; color: var(--text-primary); text-decoration: none; transition: color 0.3s; }
+  .contact-item a:hover { color: var(--accent-pink); }
+
+  .footer-copyright { text-align: center; margin-top: 8rem; font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.25em; text-transform: uppercase; }
+
+  @media (max-width: 768px) {
+    .navbar { padding: 20px 30px; }
+    .page-wrapper { padding: 0 1.5rem; }
+    .section { padding: 4rem 0; }
+    .skills-grid { grid-template-columns: 1fr; }
+    .contact-title-wrapper h2 { font-size: 4rem; }
+    #physics-container { top: 60px; }
+    .contact-info-grid { margin-top: 10rem; flex-direction: column; gap: 2rem;}
+    .back-to-top { right: 30px; bottom: 2rem;}
+  }
+</style>
+</head>
+<body id="top">
+
+<div id="ambient-breathe"></div>
+<div id="jellyfish-canvas"></div>
+<div class="cursor-dot"></div>
+<div class="cursor-outline"></div>
+<canvas id="sakuraCanvas"></canvas>
+<canvas id="starCanvas"></canvas>
+
+<nav class="navbar">
+  <div class="nav-logo">TianRan-Li</div>
+  <a href="#contact" class="nav-contact-link interactable">CONTACT</a>
+</nav>
+
+<section class="hero-welcome">
+  <div class="welcome-title">
+    <div class="line interactable">WELCOME</div>
+    <div class="line interactable">TO MY</div>
+    <div class="line interactable">SPACE</div>
+  </div>
+  <div class="welcome-scroll-hint">
+    <span>SCROLL DOWN</span>
+    <div class="welcome-scroll-line"></div>
+  </div>
+</section>
+
+<section class="new-profile-section">
+    <div class="profile-text-content" data-reveal>
+        <div class="profile-small-name">TIANRAN-LI</div>
+        <div class="profile-main-title">
+            <i class="fa-solid fa-leaf"></i>
+            Hi, I'm TianRan-Li
+            <i class="fa-solid fa-leaf"></i>
+        </div>
+        <div class="profile-typewriter">
+            I'm a Creator<span class="cursor-blink">|</span>
+        </div>
+        <p class="profile-description">
+            光电工程专业出身，兼具理工科严谨思维与内容创作敏锐嗅觉。在 AI 浪潮中主动拥抱变化，将 AI 工具深度融入学习与创作流程，形成"技术理解力 × 内容表达力"的独特交叉优势。擅长从复杂技术中提炼核心洞察，用通俗语言让硬核知识触达更广受众。
+        </p>
+    </div>
+    
+    <div class="profile-image-container" data-reveal>
+        <div class="profile-image-wrapper interactable">
+            <div class="profile-image-glow"></div>
+            <!-- 在这里使用了绝对网络链接，100% 保证图片加载 -->
+            <img class="profile-img interactable" src="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/fe34adfa-1fc0-457c-b034-77799bf50992/url---8f6085e9-38bf-4e3f-94b7-a17b8ece26d7.jpg" alt="TianRan-Li">
+        </div>
+        <div class="profile-name-tag">李天然</div>
+    </div>
+</section>
+
+<div class="page-wrapper">
+
+  <section class="section" id="skills">
+    <div class="section-header">
+      <span class="section-number">01</span>
+      <h2 class="section-title">What can I do</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="skills-grid">
+      <div class="skill-card" data-reveal>
+        <div class="skill-title">I'm an AI Whisperer<br><span style="font-size: 0.9rem; color: var(--text-secondary); font-family: var(--font-sans); font-weight: normal; font-style: normal; display: block; margin-top: 0.5rem;">爱调教各种聪明的大模型</span></div>
+        <ul class="skill-list">
+          <li>熟练运用 ChatGPT / Claude / Midjourney 等 AI 工具辅助创作与数据分析</li>
+          <li>掌握 Prompt Engineering 技巧，能高效构建多轮对话与任务链</li>
+          <li>探索 AI Agent 工作流自动化，搭建个人效率提升工具链</li>
+        </ul>
+      </div>
+      <div class="skill-card" data-reveal>
+        <div class="skill-title">I Play with Light<br><span style="font-size: 0.9rem; color: var(--text-secondary); font-family: var(--font-sans); font-weight: normal; font-style: normal; display: block; margin-top: 0.5rem;">爱用光电技术探索物理边界</span></div>
+        <ul class="skill-list">
+          <li>掌握光学系统设计与 Zemax / TracePro 光学仿真软件</li>
+          <li>熟悉光电检测原理与实验操作，具备光谱分析实操经验</li>
+          <li>具备 Python / MATLAB 数据处理与信号分析编程能力</li>
+        </ul>
+      </div>
+      <div class="skill-card" data-reveal>
+        <div class="skill-title">I am a Creator<br><span style="font-size: 0.9rem; color: var(--text-secondary); font-family: var(--font-sans); font-weight: normal; font-style: normal; display: block; margin-top: 0.5rem;">爱整一些好玩的自媒体内容</span></div>
+        <ul class="skill-list">
+          <li>独立策划运营自媒体，内容覆盖科技解读、AI应用与光电科普</li>
+          <li>掌握短视频脚本撰写、拍摄剪辑与发布运营全流程</li>
+          <li>累计产出原创内容 50+ 篇</li>
+        </ul>
+      </div>
+      <div class="skill-card" data-reveal>
+        <div class="skill-title">I love Tools<br><span style="font-size: 0.9rem; color: var(--text-secondary); font-family: var(--font-sans); font-weight: normal; font-style: normal; display: block; margin-top: 0.5rem;">爱折腾各种硬核生产力工具</span></div>
+        <ul class="skill-list">
+          <li>Python / MATLAB / LaTeX 编程与文档排版</li>
+          <li>Photoshop / Premiere / CapCut 图像与视频处理</li>
+          <li>Notion / Obsidian 知识管理与个人效率系统</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="education">
+    <div class="section-header">
+      <span class="section-number">02</span>
+      <h2 class="section-title">Education</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="edu-timeline">
+      <div class="edu-item" data-reveal>
+        <div class="edu-period">2026.09 — 2030.06（EXPECTED）</div>
+        <div class="edu-school">河北工程大学</div>
+        <div class="edu-degree">光电信息科学与工程 &middot; 本科在读</div>
+        <div class="edu-details">
+          <span class="edu-tag">光电检测</span>
+          <span class="edu-tag">激光技术</span>
+          <span class="edu-tag">AI交叉应用</span>
+        </div>
+      </div>
+      <div class="edu-item" data-reveal>
+        <div class="edu-period">2023.09 — 2026.06</div>
+        <div class="edu-school">成安县第一中学</div>
+        <div class="edu-degree">高中 &middot; 理科</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="awards">
+    <div class="section-header">
+      <span class="section-number">03</span>
+      <h2 class="section-title">Trophies</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="awards-list">
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/3d358528-9edd-49b3-9d54-7509a7cf0473/url---cf79a693-5845-4b35-b429-595d3c7dbd73.jpg">
+        <div class="award-icon">🏅</div>
+        <div class="award-text"><strong>达摩院人工智能训练师（高级）</strong>有效期至 2027.07</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/cc087ea9-9a83-43bb-9118-195d270eb0c2/url---fa521b80-88f9-4ee8-a66f-bc93686f9c58.jpg">
+        <div class="award-icon">🎖</div>
+        <div class="award-text"><strong>达摩院人工智能训练师（初级）</strong>有效期至 2027.07</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/08209ce6-8128-46bb-ab95-4b2b8b90d300/url---9cff2c19-1e9d-4b76-be1f-61dedbdf14e4.png">
+        <div class="award-icon">🏆</div>
+        <div class="award-text"><strong>阿里云 Apsara Clouder 认证</strong>人工智能 Vision 设计（进阶）</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/3988988c-bf5f-46c7-acad-8b88b39b3e8d/url---1b377aaf-3e7d-4e8d-bb75-7d3c8afd8b4e.png">
+        <div class="award-icon">🏆</div>
+        <div class="award-text"><strong>阿里云大模型 Clouder 认证</strong>RAG 应用构建及优化</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/454fc887-9209-4df0-ac97-865f8fb08029/url---b2f7d738-c617-4a2a-89b7-e7f177223d36.png">
+        <div class="award-icon">🏆</div>
+        <div class="award-text"><strong>阿里云大模型 Clouder 认证</strong>利用大模型提升内容生产能力</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/c53e76de-6d12-4ea7-b346-77911418fbe1/url---df793afe-2da7-4e5f-b307-a06ea49175ef.png">
+        <div class="award-icon">🏆</div>
+        <div class="award-text"><strong>阿里云大模型 Clouder 认证</strong>基于通义灵码实现高效 AI 编码</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/c2ed2829-faa0-4198-bf5f-de55cb0b9b85/url---948dfd6a-1c9c-4424-9c8d-230f8144470e.png">
+        <div class="award-icon">🏆</div>
+        <div class="award-text"><strong>阿里云 Apsara Clouder 认证</strong>基于 PAI ArtLab 的 AIGC 设计基础</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/a5f6d963-3130-4aa0-9484-55a34bdbeefb/url---a08ff742-5cb8-4de6-ba59-dabe6756d122.png">
+        <div class="award-icon">🏆</div>
+        <div class="award-text"><strong>阿里云大模型 Clouder 认证</strong>基于百炼平台构建智能体应用</div>
+      </div>
+      <div class="award-item interactable" data-reveal data-cert-img="https://astron-claw-media.oss-cn-beijing.aliyuncs.com/astronclaw-gateway/c701e5ba-9b5d-4c9b-8928-c3b78a1d6c16/url---ccf275f6-129b-4ce1-b637-14bce4a880d0.png">
+        <div class="award-icon">🎓</div>
+        <div class="award-text"><strong>讯飞 AI 大学堂</strong>Prompt 工程师认证</div>
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="hobbies">
+    <div class="section-header">
+      <span class="section-number">04</span>
+      <h2 class="section-title">Vibe & Life</h2>
+      <div class="section-line"></div>
+    </div>
+    
+    <div class="exp-card" data-reveal>
+      <div class="exp-header">
+        <div class="exp-role">丙烯画 × 色彩表达</div>
+        <div class="exp-company">用色彩记录灵感，反哺视觉设计</div>
+      </div>
+      <div class="hobby-images">
+        <img class="interactable" src="https://astron-claw-media-prod.oss-cn-beijing.aliyuncs.com/astron-claw-media-prod/69291c48-d5a9-411b-bd68-d3f24d611ea3/url---4b4dc6a0-c81c-4b64-b83a-42872acd21b7.jpg">
+        <img class="interactable" src="https://astron-claw-media-prod.oss-cn-beijing.aliyuncs.com/astron-claw-media-prod/58f6f88e-d211-426b-9957-a4382d937be0/url---590b7281-3a47-4016-8e02-755fc92383b8.jpg">
+        <img class="interactable" src="https://astron-claw-media-prod.oss-cn-beijing.aliyuncs.com/astron-claw-media-prod/85ada50d-3a90-422f-94dc-8872b638b250/url---63e656db-6f3c-44d3-bbc3-b6019fea7d15.jpg">
+      </div>
+    </div>
+
+    <div class="exp-card" data-reveal>
+      <div class="exp-header">
+        <div class="exp-role">拼豆 × 像素世界</div>
+        <div class="exp-company">每一颗豆子都是像素，每个作品都是算法的浪漫表达</div>
+      </div>
+      <div class="hobby-images">
+        <img class="interactable" src="https://astron-claw-media-prod.oss-cn-beijing.aliyuncs.com/astron-claw-media-prod/1f7eb91d-40be-4bb8-9565-389d1ef6e2b8/url---358881cf-9a60-4130-9040-c52dc630ff46.jpg">
+        <img class="interactable" src="https://astron-claw-media-prod.oss-cn-beijing.aliyuncs.com/astron-claw-media-prod/04b41bd7-0c91-4a58-8d40-57e1ac54ea8a/url---1164805c-21a2-4c92-86f5-f3b931e84dd2.jpg">
+      </div>
+    </div>
+  </section>
+
+  <section class="section" id="about">
+    <div class="section-header">
+      <span class="section-number">05</span>
+      <h2 class="section-title">About Me</h2>
+      <div class="section-line"></div>
+    </div>
+    <div class="self-eval" data-reveal>
+      <p>
+        光电工程专业出身，兼具<strong>理工科严谨思维</strong>与<strong>内容创作敏锐嗅觉</strong>。在 AI 浪潮中主动拥抱变化，将 AI 工具深度融入学习与创作流程，形成"技术理解力 × 内容表达力"的独特交叉优势。擅长从复杂技术中提炼核心洞察，用通俗语言让硬核知识触达更广受众。相信<strong>技术是手段，创造是终局</strong>——无论是优化光电检测算法，还是用 AI 放大内容产能，目标始终是让好的想法以最高效的方式，酷炫地落地。
+      </p>
+    </div>
+  </section>
+
+</div>
+
+<footer class="contact-section" id="contact">
+  <div class="contact-title-wrapper" data-reveal>
+    <h2 class="interactable">CONTACT ME</h2>
+    
+    <i class="fa-brands fa-weixin floating-icon icon-wechat"></i>
+    <i class="fa-regular fa-envelope floating-icon icon-envelope"></i>
+    <i class="fa-brands fa-qq floating-icon icon-qq"></i>
+    <i class="fa-solid fa-location-dot floating-icon icon-location"></i>
+    
+    <div id="physics-container">
+      <svg id="spring-svg">
+        <path id="spring-coil-path" d=""></path>
+      </svg>
+      <i class="fa-solid fa-phone physics-phone interactable" id="phone-icon"></i>
+    </div>
+  </div>
+
+  <div class="contact-info-grid" data-reveal>
+    <div class="contact-item">
+      <div class="label">EMAIL</div>
+      <a href="mailto:tianran200806@qq.com" class="interactable">tianran200806@qq.com</a>
+    </div>
+    <div class="contact-item">
+      <div class="label">PHONE</div>
+      <a href="tel:19042192468" class="interactable">190-4219-2468</a>
+    </div>
+    <div class="contact-item">
+      <div class="label">GITHUB</div>
+      <a href="https://github.com/Mia-08ran" target="_blank" class="interactable">Mia-08ran</a>
+    </div>
+  </div>
+
+  <div class="footer-copyright">
+    DESIGNED BY TIANRAN-LI © 2026
+  </div>
+
+  <a href="#top" class="back-to-top interactable">TOP</a>
+</footer>
+
+<script>
+const jellyCanvas = document.getElementById('jellyfish-canvas');
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 1000);
+camera.position.z = 12; 
+
+const renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+jellyCanvas.appendChild(renderer.domElement);
+
+const particleCount = 60000;
+const geometry = new THREE.BufferGeometry();
+const positions = new Float32Array(particleCount * 3);
+const colors = new Float32Array(particleCount * 3);
+
+const colorTop = new THREE.Color('#4ecdc4'); 
+const colorBottom = new THREE.Color('#ef4cac'); 
+
+for(let i = 0; i < particleCount; i++) {
+    let x, y, z;
+    let r = Math.random();
+    
+    if(r < 0.25) {
+        let u = Math.random(), v = Math.random();
+        let theta = u * Math.PI * 2, phi = Math.acos(v); 
+        let radius = 3.5;
+        x = radius * Math.sin(phi) * Math.cos(theta);
+        y = radius * Math.cos(phi) * 0.7 + 1.5; 
+        z = radius * Math.sin(phi) * Math.sin(theta);
+    } else if(r < 0.45) {
+        let angle = Math.random() * Math.PI * 2;
+        let radius = Math.random() * 3.2;
+        x = radius * Math.cos(angle);
+        z = radius * Math.sin(angle);
+        y = 1.5 - (radius * radius) * 0.15 + (Math.random() - 0.5) * 0.8;
+    } else {
+        let angle = Math.random() * Math.PI * 2;
+        let radius = 2.5 * Math.sqrt(Math.random()); 
+        let length = Math.random() * 12; 
+        x = radius * Math.cos(angle) * (1.0 - length / 18);
+        z = radius * Math.sin(angle) * (1.0 - length / 18);
+        y = 1.0 - length;
+    }
+
+    positions[i*3] = x; positions[i*3+1] = y; positions[i*3+2] = z;
+
+    let lerpFactor = Math.max(0, Math.min(1, (y + 10) / 12));
+    const mixedColor = colorBottom.clone().lerp(colorTop, lerpFactor);
+    colors[i*3] = mixedColor.r; colors[i*3+1] = mixedColor.g; colors[i*3+2] = mixedColor.b;
+}
+
+geometry.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+geometry.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+geometry.setAttribute('originalPosition', new THREE.BufferAttribute(positions.slice(), 3));
+
+const vertexShader = `
+    attribute vec3 originalPosition;
+    uniform float uTime;
+    uniform vec3 uMousePos;
+    varying vec3 vColor;
+
+    void main() {
+        vColor = color;
+        vec3 pos = originalPosition;
+        float swimPhase = uTime * 1.5 + pos.y * 1.2;
+        float expansion = sin(swimPhase) * 0.15;
+        pos.x += pos.x * expansion * smoothstep(-5.0, 3.0, pos.y);
+        pos.z += pos.z * expansion * smoothstep(-5.0, 3.0, pos.y);
+        pos.y += sin(uTime * 2.0) * 0.3; 
+        pos.x += sin(uTime * 1.0 + pos.y * 0.5) * 0.2 * smoothstep(1.0, -10.0, pos.y);
+
+        float dist = distance(pos, uMousePos);
+        float interactionRadius = 4.0;
+        if (dist < interactionRadius) {
+            vec3 dir = normalize(pos - uMousePos);
+            float force = (interactionRadius - dist) / interactionRadius;
+            pos += dir * force * 1.0; 
+        }
+
+        vec4 mvPosition = modelViewMatrix * vec4(pos, 1.0);
+        gl_PointSize = (4.0 / -mvPosition.z); 
+        gl_Position = projectionMatrix * mvPosition;
+    }
+`;
+
+const fragmentShader = `
+    varying vec3 vColor;
+    void main() {
+        float dist = length(gl_PointCoord - vec2(0.5));
+        if (dist > 0.5) discard;
+        float alpha = smoothstep(0.5, 0.1, dist);
+        gl_FragColor = vec4(vColor, alpha * 0.7);
+    }
+`;
+
+const material = new THREE.ShaderMaterial({
+    uniforms: {
+        uTime: { value: 0.0 },
+        uMousePos: { value: new THREE.Vector3(9999, 9999, 9999) } 
+    },
+    vertexShader: vertexShader,
+    fragmentShader: fragmentShader,
+    transparent: true,
+    depthWrite: false,
+    blending: THREE.AdditiveBlending 
+});
+
+const jellyfish = new THREE.Points(geometry, material);
+jellyfish.position.set(4, 0, 0); 
+jellyfish.rotation.z = -0.15;
+jellyfish.rotation.x = 0.1;
+scene.add(jellyfish);
+
+const raycaster = new THREE.Raycaster();
+const mouse3D = new THREE.Vector2();
+
+window.addEventListener('mousemove', (event) => {
+    mouse3D.x = (event.clientX / window.innerWidth) * 2 - 1;
+    mouse3D.y = -(event.clientY / window.innerHeight) * 2 + 1;
+    let vector = new THREE.Vector3(mouse3D.x, mouse3D.y, 0.5);
+    vector.unproject(camera);
+    let dir = vector.sub(camera.position).normalize();
+    let distance = -camera.position.z / dir.z;
+    let pos = camera.position.clone().add(dir.multiplyScalar(distance));
+    material.uniforms.uMousePos.value.copy(pos);
+});
+
+window.addEventListener('mouseout', () => {
+    material.uniforms.uMousePos.value.set(9999, 9999, 9999);
+});
+
+window.addEventListener('resize', () => {
+    camera.aspect = window.innerWidth / window.innerHeight;
+    camera.updateProjectionMatrix();
+    renderer.setSize(window.innerWidth, window.innerHeight);
+    if(window.innerWidth < 900) { jellyfish.position.set(0, 2, -5); } 
+    else { jellyfish.position.set(4, 0, 0); }
+});
+
+const clock = new THREE.Clock();
+function animateThree() {
+    requestAnimationFrame(animateThree);
+    const elapsedTime = clock.getElapsedTime();
+    material.uniforms.uTime.value = elapsedTime;
+    jellyfish.rotation.y = elapsedTime * 0.1;
+    renderer.render(scene, camera);
+}
+animateThree();
+window.dispatchEvent(new Event('resize'));
+</script>
+
+<script>
+  const cursorDot = document.querySelector('.cursor-dot');
+  const cursorOutline = document.querySelector('.cursor-outline');
+  let cursorX = window.innerWidth / 2;
+  let cursorY = window.innerHeight / 2;
+  let outlineX = cursorX;
+  let outlineY = cursorY;
+
+  window.addEventListener('mousemove', (e) => {
+    cursorX = e.clientX;
+    cursorY = e.clientY;
+    cursorDot.style.left = `${cursorX}px`;
+    cursorDot.style.top = `${cursorY}px`;
+  });
+
+  function renderCursor() {
+    outlineX += (cursorX - outlineX) * 0.15;
+    outlineY += (cursorY - outlineY) * 0.15;
+    cursorOutline.style.left = `${outlineX}px`;
+    cursorOutline.style.top = `${outlineY}px`;
+    requestAnimationFrame(renderCursor);
+  }
+  renderCursor();
+
+  document.querySelectorAll('a, button, .interactable').forEach(el => {
+    el.addEventListener('mouseenter', () => cursorOutline.classList.add('hover'));
+    el.addEventListener('mouseleave', () => cursorOutline.classList.remove('hover'));
+  });
+</script>
+
+<script>
+const sakuraCanvas = document.getElementById('sakuraCanvas');
+const sCtx = sakuraCanvas.getContext('2d');
+let sakuraW, sakuraH;
+let petals = [];
+
+function resizeSakura() {
+  sakuraW = sakuraCanvas.width = window.innerWidth;
+  sakuraH = sakuraCanvas.height = window.innerHeight;
+}
+window.addEventListener('resize', resizeSakura);
+resizeSakura();
+
+window.addEventListener('mousemove', (e) => {
+  if (Math.random() < 0.1) {
+    createPetal(e.clientX, e.clientY);
+  }
+});
+
+function createPetal(x, y) {
+  petals.push({
+    x: x + (Math.random() - 0.5) * 20,
+    y: y + (Math.random() - 0.5) * 20,
+    vx: (Math.random() - 0.5) * 1.5,
+    vy: Math.random() * 1 + 1,
+    size: Math.random() * 6 + 4,
+    rotation: Math.random() * Math.PI * 2,
+    vr: (Math.random() - 0.5) * 0.1,
+    opacity: 1,
+    life: 0
+  });
+}
+
+function drawSakura() {
+  sCtx.clearRect(0, 0, sakuraW, sakuraH);
+  
+  for (let i = petals.length - 1; i >= 0; i--) {
+    let p = petals[i];
+    p.x += p.vx;
+    p.y += p.vy;
+    p.rotation += p.vr;
+    p.life += 1;
+    
+    if (p.life > 100) p.opacity -= 0.02;
+    
+    sCtx.save();
+    sCtx.translate(p.x, p.y);
+    sCtx.rotate(p.rotation);
+    sCtx.beginPath();
+    sCtx.moveTo(0, 0);
+    sCtx.bezierCurveTo(p.size, -p.size, p.size*2, p.size, 0, p.size*1.5);
+    sCtx.bezierCurveTo(-p.size*2, p.size, -p.size, -p.size, 0, 0);
+    sCtx.fillStyle = `rgba(239, 76, 172, ${p.opacity * 0.7})`;
+    sCtx.fill();
+    sCtx.restore();
+    
+    if (p.opacity <= 0) petals.splice(i, 1);
+  }
+  requestAnimationFrame(drawSakura);
+}
+drawSakura();
+</script>
+
+<script>
+const Engine = Matter.Engine, Runner = Matter.Runner, MouseConstraint = Matter.MouseConstraint,
+      Mouse = Matter.Mouse, Composite = Matter.Composite, Constraint = Matter.Constraint, Bodies = Matter.Bodies;
+
+const engine = Engine.create(); const world = engine.world;
+const container = document.getElementById('physics-container');
+const containerWidth = 600;
+const anchor = Bodies.rectangle(containerWidth / 2, 40, 10, 10, { isStatic: true });
+const phoneBody = Bodies.rectangle(containerWidth / 2, 190, 45, 45, { restitution: 0.95, frictionAir: 0.015, density: 0.05, friction: 0.01 });
+
+const spring = Constraint.create({ bodyA: anchor, bodyB: phoneBody, pointB: { x: 0, y: -20 }, stiffness: 0.015, damping: 0.01, length: 120 });
+Composite.add(world, [anchor, phoneBody, spring]);
+
+const matterMouse = Mouse.create(container);
+const mouseConstraint = MouseConstraint.create(engine, { mouse: matterMouse, constraint: { stiffness: 0.1, render: { visible: false } } });
+Composite.add(world, mouseConstraint);
+Runner.run(Runner.create(), engine);
+
+window.addEventListener('mousemove', (e) => {
+  if (mouseConstraint.body) {
+    const rect = container.getBoundingClientRect();
+    matterMouse.position.x = e.clientX - rect.left;
+    matterMouse.position.y = e.clientY - rect.top;
+  }
+});
+window.addEventListener('mouseup', () => { if (mouseConstraint.body) { matterMouse.button = -1; mouseConstraint.body = null; } });
+
+const phoneIcon = document.getElementById('phone-icon');
+const coilPath = document.getElementById('spring-coil-path');
+
+Matter.Events.on(engine, 'afterUpdate', function() {
+  const pos = phoneBody.position; const angle = phoneBody.angle;
+  phoneIcon.style.left = `${pos.x - 22}px`; phoneIcon.style.top = `${pos.y - 25}px`; phoneIcon.style.transform = `rotate(${angle}rad)`;
+  
+  const attachX = pos.x + Math.sin(angle) * 20; const attachY = pos.y - Math.cos(angle) * 20;
+  const x0 = anchor.position.x; const y0 = anchor.position.y;
+  const dx = attachX - x0; const dy = attachY - y0; const dist = Math.sqrt(dx * dx + dy * dy);
+  const ux = dx / dist; const uy = dy / dist; const nx = -uy; const ny = ux;
+  const coils = 20; const amplitude = 9;  
+  let pathStr = `M ${x0} ${y0}`;
+  const steps = coils * 6;
+  for (let i = 1; i <= steps; i++) {
+    const t = i / steps;
+    const curX = x0 + ux * dist * t; const curY = y0 + uy * dist * t;
+    const phase = t * coils * Math.PI * 2; const offset = Math.sin(phase) * amplitude;
+    const px = curX + nx * offset; const py = curY + ny * offset;
+    pathStr += ` L ${px.toFixed(1)} ${py.toFixed(1)}`;
+  }
+  pathStr += ` L ${attachX} ${attachY}`;
+  coilPath.setAttribute('d', pathStr);
+});
+</script>
+
+<script>
+const starCanvas = document.getElementById('starCanvas');
+const starCtx = starCanvas.getContext('2d');
+let stars = [], W, H;
+function resizeStars() { W = starCanvas.width = window.innerWidth; H = starCanvas.height = window.innerHeight; initStars(); }
+function initStars() {
+  stars = []; const count = Math.floor((W * H) / 11000); 
+  for (let i = 0; i < count; i++) {
+    stars.push({ x: Math.random() * W, y: Math.random() * H, r: Math.random() * 1.2 + 0.3, baseAlpha: Math.random() * 0.5 + 0.3, twinkleSpeed: Math.random() * 0.02 + 0.005, twinklePhase: Math.random() * Math.PI * 2, warm: Math.random() < 0.1 });
+  }
+}
+function drawStars() {
+  starCtx.fillStyle = 'rgba(5, 5, 5, 0.15)'; starCtx.fillRect(0, 0, W, H);
+  for (const s of stars) {
+    s.twinklePhase += s.twinkleSpeed; const alpha = s.baseAlpha * (0.5 + 0.5 * Math.sin(s.twinklePhase));
+    const r = s.warm ? 255 : 220, g = s.warm ? 220 : 225, b = 255;
+    starCtx.beginPath(); starCtx.arc(s.x, s.y, s.r, 0, Math.PI * 2); starCtx.fillStyle = `rgba(${r},${g},${b},${alpha})`; starCtx.fill();
+  }
+  requestAnimationFrame(drawStars);
+}
+resizeStars(); window.addEventListener('resize', resizeStars); drawStars();
+
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach((entry) => { if (entry.isIntersecting) { entry.target.classList.add('visible'); observer.unobserve(entry.target); } });
+}, { threshold: 0.15, rootMargin: '0px 0px -50px 0px' });
+document.querySelectorAll('[data-reveal]').forEach((el) => { observer.observe(el); });
+
+let activePopup = null;
+function showCertPopup(awardItem, x, y) {
+  removeCertPopup(); const imgSrc = awardItem.getAttribute('data-cert-img'); if (!imgSrc) return;
+  const popup = document.createElement('div'); popup.className = 'cert-popup'; popup.style.left = x + 'px'; popup.style.top = y + 'px';
+  const img = document.createElement('img'); img.src = imgSrc; popup.appendChild(img); document.body.appendChild(popup); activePopup = popup;
+}
+function removeCertPopup() {
+  if (activePopup) { activePopup.classList.add('fade-out'); const popup = activePopup; setTimeout(() => { popup.remove(); }, 300); activePopup = null; }
+}
+document.querySelectorAll('.award-item[data-cert-img]').forEach(item => {
+  item.addEventListener('mouseenter', (e) => { const rect = item.getBoundingClientRect(); showCertPopup(item, rect.left + rect.width / 2, rect.top - 10); });
+  item.addEventListener('mousemove', (e) => { if (activePopup) { activePopup.style.left = e.clientX + 'px'; activePopup.style.top = (e.clientY - 20) + 'px'; } });
+  item.addEventListener('mouseleave', removeCertPopup);
+});
+</script>
+
+</body>
+</html>
