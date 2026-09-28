@@ -614,40 +614,8 @@
 @media (prefers-reduced-motion:reduce){.hero-welcome::before,.hero-welcome::after,.profile-v2-visual::before,.profile-v2-visual::after,.photo-back,.profile-float{animation:none!important}}
 
 </style>
-<style id="deep-sea-entry-style">
-#deep-sea-entry{position:fixed;inset:0;z-index:99999;background:#020308;overflow:hidden;display:grid;place-items:center;color:#fff;opacity:1;transition:opacity 900ms cubic-bezier(.77,0,.18,1);font-family:inherit}
-#deep-sea-entry.hide{opacity:0;pointer-events:none}
-#deep-sea-entry .entry-noise{position:absolute;inset:0;opacity:.08;background-image:radial-gradient(circle at 20% 30%,#fff 0 1px,transparent 1px),radial-gradient(circle at 70% 60%,#fff 0 1px,transparent 1px);background-size:90px 90px,130px 130px;animation:entryDrift 8s linear infinite}
-#deep-sea-entry .entry-glow{position:absolute;width:42vmin;height:42vmin;border-radius:50%;background:radial-gradient(circle,rgba(125,231,255,.18),rgba(90,100,255,.06) 38%,transparent 70%);filter:blur(10px);transform:scale(.2);opacity:0;animation:entryGlow 2.7s cubic-bezier(.2,.7,.2,1) forwards}
-#deep-sea-entry .entry-ring{position:absolute;width:28vmin;height:28vmin;border:1px solid rgba(154,238,255,.32);border-radius:50%;box-shadow:0 0 80px rgba(78,185,255,.12),inset 0 0 40px rgba(78,185,255,.08);transform:scale(.25);opacity:0;animation:entryRing 2.5s cubic-bezier(.16,.8,.24,1) .25s forwards}
-#deep-sea-entry .entry-core{position:absolute;width:5px;height:5px;border-radius:50%;background:#dffcff;box-shadow:0 0 14px #9ceeff,0 0 50px rgba(105,218,255,.9);animation:entryCore 2.1s ease-in-out forwards}
-#deep-sea-entry .entry-jelly{position:absolute;width:110px;height:75px;border-radius:55% 55% 42% 42%;background:radial-gradient(ellipse at 50% 45%,rgba(224,251,255,.85),rgba(104,218,255,.22) 35%,rgba(72,95,255,.04) 72%,transparent 73%);filter:drop-shadow(0 0 25px rgba(101,221,255,.5));opacity:0;transform:translateY(12vh) scale(.3);animation:jellyRise 2.15s cubic-bezier(.16,.8,.22,1) .7s forwards}
-#deep-sea-entry .entry-jelly:before,#deep-sea-entry .entry-jelly:after{content:"";position:absolute;top:58px;width:2px;height:100px;background:linear-gradient(rgba(130,231,255,.7),transparent);filter:blur(.4px);border-radius:100%;transform-origin:top}
-#deep-sea-entry .entry-jelly:before{left:38px;transform:rotate(8deg);animation:tendril 1.2s ease-in-out .9s infinite alternate}
-#deep-sea-entry .entry-jelly:after{left:70px;transform:rotate(-9deg);animation:tendril 1.1s ease-in-out 1s infinite alternate-reverse}
-#deep-sea-entry .entry-copy{position:relative;z-index:2;text-align:center;transform:translateY(24px);opacity:0;animation:entryCopy 1s cubic-bezier(.16,.8,.24,1) 1.35s forwards}
-#deep-sea-entry .entry-status{font-size:10px;letter-spacing:.42em;color:rgba(201,245,255,.62);margin-bottom:16px}
-#deep-sea-entry .entry-title{font-size:clamp(42px,8vw,94px);font-weight:300;letter-spacing:.2em;margin-left:.2em;line-height:1}
-#deep-sea-entry .entry-sub{font-size:9px;letter-spacing:.34em;color:rgba(255,255,255,.42);margin-top:18px}
-#deep-sea-entry .entry-progress{position:absolute;bottom:7vh;left:50%;width:min(240px,42vw);height:1px;background:rgba(255,255,255,.1);transform:translateX(-50%);overflow:hidden}
-#deep-sea-entry .entry-progress span{display:block;width:0;height:100%;background:linear-gradient(90deg,transparent,#b8f5ff,transparent);animation:entryProgress 2.35s cubic-bezier(.2,.7,.2,1) forwards}
-#deep-sea-entry .entry-skip{position:absolute;right:28px;bottom:24px;border:0;background:none;color:rgba(255,255,255,.28);font:inherit;font-size:9px;letter-spacing:.18em;cursor:pointer;z-index:3}
-@keyframes entryGlow{0%{transform:scale(.2);opacity:0}35%{opacity:1}100%{transform:scale(1.5);opacity:.55}}
-@keyframes entryRing{0%{transform:scale(.25);opacity:0}35%{opacity:1}100%{transform:scale(3.2);opacity:0}}
-@keyframes entryCore{0%{transform:scale(.3);opacity:0}18%{transform:scale(1);opacity:1}62%{transform:scale(1);opacity:1}100%{transform:scale(16);opacity:0}}
-@keyframes jellyRise{0%{opacity:0;transform:translateY(12vh) scale(.3)}35%{opacity:.95}100%{opacity:.92;transform:translateY(-2vh) scale(1)}}
-@keyframes tendril{to{transform:rotate(-7deg) scaleY(1.12)}}
-@keyframes entryCopy{to{opacity:1;transform:translateY(0)}}
-@keyframes entryProgress{to{width:100%}}
-@keyframes entryDrift{to{background-position:90px 90px,-130px -130px}}
-@media (prefers-reduced-motion:reduce){#deep-sea-entry .entry-glow,#deep-sea-entry .entry-ring,#deep-sea-entry .entry-core,#deep-sea-entry .entry-jelly,#deep-sea-entry .entry-copy,#deep-sea-entry .entry-progress span{animation:none}#deep-sea-entry .entry-copy{opacity:1;transform:none}}
-</style>
+
 </head>
-<div id="deep-sea-entry" aria-label="Entering Tianran">
-  <div class="entry-noise"></div><div class="entry-glow"></div><div class="entry-ring"></div><div class="entry-core"></div><div class="entry-jelly"></div>
-  <div class="entry-copy"><div class="entry-status">SYSTEM / AWAKENING</div><div class="entry-title">TIANRAN</div><div class="entry-sub">DESIGN · TECHNOLOGY · AI</div></div>
-  <div class="entry-progress"><span></span></div><button class="entry-skip" type="button">SKIP</button>
-</div>
 <body id="top">
 
 <div id="ambient-breathe"></div>
